@@ -47,7 +47,7 @@ async function scrollReasoningToBottom() {
   if (reasoningRef.value) reasoningRef.value.scrollTop = reasoningRef.value.scrollHeight;
 }
 
-async function translateAll() {
+async function translateAll(force = false) {
   if (translating.value || !allTags.value.length) return;
   translationController?.abort();
   const controller = new AbortController();
@@ -65,20 +65,23 @@ async function translateAll() {
   });
 
   // Cache first: reuse this gallery's stored tag translations and only send
-  // the ones that are missing (or renamed) to the AI.
+  // the ones that are missing (or renamed) to the AI. The re-translate click
+  // passes force and goes straight back to the AI.
   const galleryId = props.galleryId ?? 0;
   let cached = new Map<number, string>();
   let pending = allTags.value.map(({ id, name }) => ({ id, name }));
-  const cachedEntry = await matchingCacheEntry(galleryId, cacheKey);
-  if (cachedEntry) {
-    const split = splitCachedTags(cachedEntry, pending);
-    cached = split.hits;
-    pending = split.misses;
-    if (!pending.length) {
-      translations.value = cached;
-      translating.value = false;
-      translationController = null;
-      return;
+  if (!force) {
+    const cachedEntry = await matchingCacheEntry(galleryId, cacheKey);
+    if (cachedEntry) {
+      const split = splitCachedTags(cachedEntry, pending);
+      cached = split.hits;
+      pending = split.misses;
+      if (!pending.length) {
+        translations.value = cached;
+        translating.value = false;
+        translationController = null;
+        return;
+      }
     }
   }
 
@@ -150,7 +153,7 @@ onUnmounted(() => translationController?.abort());
           class="btn small"
           type="button"
           :disabled="translating || !allTags.length"
-          @click="translateAll"
+          @click="translateAll(true)"
         >
           <Loader v-if="translating" :size="14" class="spin" />
           <Languages v-else :size="14" />

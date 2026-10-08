@@ -25,6 +25,8 @@ interface TranslationJob {
   sourceTitle: string;
   config: TranslationConfig;
   revision: number;
+  /** Manual re-translate: bypass the persistent cache entirely. */
+  force: boolean;
 }
 
 interface TranslationConfig {
@@ -91,7 +93,10 @@ export const useTitleTranslationsStore = defineStore("titleTranslations", () => 
     };
     const configKey = titleCacheConfigKey(config);
     const current = entry(galleryId);
-    if (!options.force && current?.sourceTitle === title && current.configKey === configKey) {
+    // Any completed/in-flight translation for this gallery (same config) is
+    // reused as-is: cards and detail pages derive different source text from
+    // the same gallery, and translating per surface would defeat the cache.
+    if (!options.force && current?.configKey === configKey) {
       if (current.queued && options.priority) promote(galleryId);
       if (current.queued || current.translating || current.translated) return;
     }
@@ -109,7 +114,13 @@ export const useTitleTranslationsStore = defineStore("titleTranslations", () => 
       translating: false,
       error: "",
     });
-    const job = { galleryId, sourceTitle: title, config, revision };
+    const job: TranslationJob = {
+      galleryId,
+      sourceTitle: title,
+      config,
+      revision,
+      force: options.force ?? false,
+    };
     if (options.priority) pending.unshift(job);
     else pending.push(job);
     pump();
@@ -139,15 +150,18 @@ export const useTitleTranslationsStore = defineStore("titleTranslations", () => 
       error: "",
     });
 
-    // Persistent cache first: a stored translation produced by the same
-    // config for the same source title skips the AI request entirely.
     const cacheKey = titleCacheConfigKey(job.config);
-    const cachedEntry = await matchingCacheEntry(job.galleryId, cacheKey);
-    const cachedTitle = cachedTitleFor(cachedEntry, job.sourceTitle);
-    if (cachedTitle.trim()) {
-      if (!isCurrent(job, controller)) return;
-      update(job.galleryId, { translated: cachedTitle, translating: false });
-      return;
+    // Persistent cache first: a stored translation produced by the same
+    // config skips the AI request entirely. Manual re-translates (force)
+    // bypass the cache on purpose.
+    if (!job.force) {
+      const cachedEntry = await matchingCacheEntry(job.galleryId, cacheKey);
+      const cachedTitle = cachedTitleFor(cachedEntry, job.sourceTitle);
+      if (cachedTitle.trim()) {
+        if (!isCurrent(job, controller)) return;
+        update(job.galleryId, { translated: cachedTitle, translating: false });
+        return;
+      }
     }
 
     try {

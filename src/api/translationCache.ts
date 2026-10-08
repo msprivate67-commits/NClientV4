@@ -117,12 +117,21 @@ async function writeEntry(entry: TranslationCacheEntry): Promise<void> {
   }
 }
 
-/** Look up the cached translation for one exact source title variant. */
+/**
+ * Look up a gallery's cached title translation. The exact source-title
+ * variant wins (cards and detail pages derive different text from the same
+ * gallery), but any other stored variant is accepted: a Chinese rendering of
+ * the same gallery is reused instead of spending another AI request.
+ */
 export function cachedTitleFor(entry: TranslationCacheEntry | null, sourceTitle: string): string {
   const byVariant = entry?.titles?.[sourceTitle];
   if (byVariant?.trim()) return byVariant;
-  // Entries written before the multi-variant map only kept one pair.
-  if (entry && entry.title_source === sourceTitle) return entry.title_translated;
+  if (entry?.title_translated.trim()) return entry.title_translated;
+  // Entries written before the single-pair columns existed store everything
+  // in the variant map only.
+  for (const translated of Object.values(entry?.titles ?? {})) {
+    if (translated.trim()) return translated;
+  }
   return "";
 }
 
