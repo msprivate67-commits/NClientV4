@@ -10,7 +10,7 @@
     "settings": "設定",
     "get_latest": "最新版を入手",
     "feedback": "フィードバック",
-    "brand": "NClientT",
+    "brand": "NClientV4",
     "short_brand": "N",
     "current_version": "現在",
     "latest_version": "最新",
@@ -49,7 +49,7 @@
     "no": "いいえ",
     "on": "オン",
     "off": "オフ",
-    "branch": "NClientT"
+    "branch": "NClientV4"
   },
   "home": {
     "title": "ホーム",
@@ -338,6 +338,12 @@
     "ai_auto_translate": "オンラインギャラリーのタイトルとコメントを自動翻訳する",
     "ai_auto_translate_gallery_titles": "オンラインギャラリーの全タイトルをバックグラウンドで自動翻訳する",
     "ai_use_proxy": "AI リクエストに設定済みプロキシを使用する",
+    "ai_cache_limit": "翻訳キャッシュ上限（作品数）",
+    "ai_cache_limit_hint": "ギャラリー ID ごとに AI 翻訳結果（タイトル・タグ・コメント）を保存します。キャッシュに一致する場合は AI を呼び出さずに再利用します。0 でキャッシュ無効。上限を超えると古い記録から削除されます。",
+    "ai_cache_count": "キャッシュ済み: {n} 作品",
+    "ai_cache_clear": "キャッシュ記録を消去",
+    "ai_cache_clear_confirm": "{n} 件の AI 翻訳キャッシュをすべて消去しますか？消去後は再度 AI 翻訳が行われます。",
+    "ai_cache_hint": "記録はギャラリー ID で管理されます。消去してもダウンロード済みの翻訳タイトルには影響しません。",
     "app_data_dir": "アプリデータディレクトリ：",
     "app_language": "アプリ言語",
     "app_language_hint": "インターフェース言語を選択します。初回起動時にシステム言語を自動検出します。",

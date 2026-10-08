@@ -1,25 +1,25 @@
 [package]
-name = "nclientt"
-version = "0.1.9"
+name = "nclientv4"
+version = "4.0.1"
 description = "Unofficial cross-platform nhentai desktop client with optional online favorite sync"
-authors = ["NClientT"]
+authors = ["NClientV4"]
 license = "Apache-2.0"
 repository = ""
-default-run = "nclientt-bin"
+default-run = "nclientv4-bin"
 edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "nclientt"
+name = "nclientv4"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 # The bin target shares the package name with the lib, so its Windows .pdb /
 # Linux .o output collides with the lib's. Give the binary a distinct output
 # name to silence the "output filename collision" warning (a future hard
 # error — see rust-lang/cargo#6313). The `[lib] name` above is unchanged, so
-# the Android `.so` is still loaded as `libnclientt.so`.
+# the Android `.so` is still loaded as `libnclientv4.so`.
 [[bin]]
-name = "nclientt-bin"
+name = "nclientv4-bin"
 path = "src/main.rs"
 
 [build-dependencies]

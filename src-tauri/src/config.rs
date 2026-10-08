@@ -20,7 +20,7 @@ pub const DEFAULT_MIRROR: &str = "nhentai.net";
 /// Default User-Agent sent to nhentai API v2. The public API asks third-party
 /// clients to identify themselves with a descriptive value.
 pub const DEFAULT_UA: &str = concat!(
-    "NClientT/",
+    "NClientV4/",
     env!("CARGO_PKG_VERSION"),
     " (unofficial nhentai desktop client)"
 );
@@ -219,6 +219,11 @@ pub struct Settings {
     pub tl_auto_translate_gallery_titles: bool,
     #[serde(default)]
     pub tl_use_proxy: bool,
+    /// AI translation cache cap, in galleries. Records are keyed by gallery
+    /// ID; once the table holds more entries than this the oldest ones are
+    /// dropped. `0` disables the cache (every translation calls the AI again).
+    #[serde(default = "tl_cache_limit_default")]
+    pub tl_cache_limit: u32,
 
     #[serde(default)]
     pub app_language: String,
@@ -285,6 +290,7 @@ impl Default for Settings {
             tl_auto_translate: true,
             tl_auto_translate_gallery_titles: false,
             tl_use_proxy: false,
+            tl_cache_limit: tl_cache_limit_default(),
             app_language: String::new(),
             theme: theme_default(),
         }
@@ -301,6 +307,10 @@ fn clipboard_link_reader_default() -> bool {
 
 fn tl_auto_translate_default() -> bool {
     true
+}
+
+fn tl_cache_limit_default() -> u32 {
+    1000
 }
 
 fn tl_comment_target_lang_default() -> String {
@@ -337,6 +347,7 @@ mod tests {
             .unwrap()
             .remove("tl_comment_target_lang");
         value.as_object_mut().unwrap().remove("tl_use_proxy");
+        value.as_object_mut().unwrap().remove("tl_cache_limit");
         value.as_object_mut().unwrap().remove("app_language");
         value.as_object_mut().unwrap().remove("theme");
         let settings: Settings = serde_json::from_value(value).unwrap();
@@ -351,6 +362,7 @@ mod tests {
             "简体中文，古典文言文风格，或诗句对联风格"
         );
         assert!(!settings.tl_use_proxy);
+        assert_eq!(settings.tl_cache_limit, 1000);
         assert!(settings.app_language.is_empty());
         assert_eq!(settings.theme, "system");
     }
@@ -367,7 +379,7 @@ pub struct ConfigStore {
 
 impl ConfigStore {
     /// Load settings from `<app_data>/settings.json`, creating it if missing.
-    /// `download_dir` defaults to `<app_data>/NClientT/Download`.
+    /// `download_dir` defaults to `<app_data>/NClientV4/Download`.
     pub fn load_or_init(app_data: &Path) -> Self {
         let path = app_data.join("settings.json");
         let default_download = default_download_dir(app_data);
@@ -483,7 +495,7 @@ pub fn cookie_db_path(app_data: &Path) -> PathBuf {
 /// Default download directory, platform-aware.
 ///
 /// On Android the download dir lives under the app's own **external files
-/// directory** (`<external>/Android/data/com.nclientt.app/files/NClientT/Download`),
+/// directory** (`<external>/Android/data/com.nclientv4.app/files/NClientV4/Download`),
 /// which is part of scoped storage: it is world-visible in file managers yet
 /// needs **no runtime permission** to read/write on Android 10+ (API 29+). This
 /// is the standard location for app-managed downloadable content.
@@ -497,11 +509,11 @@ fn default_download_dir(app_data: &Path) -> PathBuf {
     #[cfg(target_os = "android")]
     {
         if let Some(ext) = android_external_files_dir() {
-            let dir = ext.join("NClientT").join("Download");
+            let dir = ext.join("NClientV4").join("Download");
             log::info!("Android download dir (app external): {}", dir.display());
             return dir;
         }
-        let fallback = app_data.join("NClientT").join("Download");
+        let fallback = app_data.join("NClientV4").join("Download");
         log::warn!(
             "No writable app-external storage found; using internal: {}",
             fallback.display()
@@ -510,7 +522,7 @@ fn default_download_dir(app_data: &Path) -> PathBuf {
     }
     #[cfg(not(target_os = "android"))]
     {
-        app_data.join("NClientT").join("Download")
+        app_data.join("NClientV4").join("Download")
     }
 }
 
@@ -530,12 +542,12 @@ pub fn download_candidates(app_data: &Path) -> Vec<(&'static str, PathBuf)> {
         if let Some(ext) = android_external_files_dir() {
             out.push((
                 "App external storage (recommended)",
-                ext.join("NClientT").join("Download"),
+                ext.join("NClientV4").join("Download"),
             ));
         }
         out.push((
             "Internal app storage",
-            app_data.join("NClientT").join("Download"),
+            app_data.join("NClientV4").join("Download"),
         ));
     }
     #[cfg(not(target_os = "android"))]
@@ -546,7 +558,7 @@ pub fn download_candidates(app_data: &Path) -> Vec<(&'static str, PathBuf)> {
 }
 
 /// Resolve the app's external files directory on Android, i.e.
-/// `<external_root>/Android/data/com.nclientt.app/files`.
+/// `<external_root>/Android/data/com.nclientv4.app/files`.
 ///
 /// Tauri 2 has no Rust API exposing `Context.getExternalFilesDir()`, and the
 /// legacy `EXTERNAL_STORAGE` env var is no longer populated for app processes
@@ -560,7 +572,7 @@ pub fn download_candidates(app_data: &Path) -> Vec<(&'static str, PathBuf)> {
 #[cfg(target_os = "android")]
 fn android_external_files_dir() -> Option<PathBuf> {
     /// Package-specific suffix under external storage (scoped-storage app dir).
-    const APP_EXT_SUFFIX: &str = "Android/data/com.nclientt.app/files";
+    const APP_EXT_SUFFIX: &str = "Android/data/com.nclientv4.app/files";
 
     // Candidate external-storage roots, most common first. Order matters: the
     // canonical primary external storage is `/storage/emulated/0`; the others

@@ -5,7 +5,16 @@ import { useI18n } from "vue-i18n";
 import GalleryCard from "@/components/GalleryCard.vue";
 import EmptyState from "@/components/EmptyState.vue";
 import { ArrowUp, ArrowDown, Languages, Loader } from "@lucide/vue";
-import { localScan, localList, localDelete, localSetTranslatedTitle, translateTitle } from "@/api";
+import {
+  cacheTitleTranslation,
+  localScan,
+  localList,
+  localDelete,
+  localSetTranslatedTitle,
+  matchingCacheEntry,
+  titleCacheConfigKey,
+  translateTitle,
+} from "@/api";
 import { useDownloadedStore } from "@/stores/downloaded";
 import { useOverlayStore } from "@/stores/overlay";
 import { useSettingsStore } from "@/stores/settings";
@@ -26,7 +35,7 @@ const { t } = useI18n();
 // Pure front-end preference: whether to show the translated title or the
 // original. Defaults to "translated"; falls back to the original when a
 // gallery has no translation. Persisted in localStorage (no backend change).
-const SHOW_TRANSLATED_KEY = "nclientt:localLibrary:showTranslated";
+const SHOW_TRANSLATED_KEY = "nclientv4:localLibrary:showTranslated";
 const showTranslated = ref(loadShowTranslated());
 
 function loadShowTranslated(): boolean {
@@ -94,6 +103,13 @@ async function translateAll() {
   translateProgress.value = { done: 0, total, skipped, failed: 0 };
   translateDoneMsg.value = "";
   const s = settings.settings;
+  const cacheKey = titleCacheConfigKey({
+    baseUrl: s.tl_base_url,
+    model: s.tl_model,
+    targetLang: s.tl_target_lang,
+    thinking: s.tl_thinking,
+    useProxy: s.tl_use_proxy,
+  });
 
   let cursor = 0;
   const worker = async () => {
@@ -101,6 +117,27 @@ async function translateAll() {
       const idx = cursor++;
       const l = targets[idx];
       const original = stripLeadingId(l.title || `#${l.id}`);
+      // Cache first: a stored translation for this gallery produced by the
+      // same config skips the AI request entirely.
+      const cachedEntry = await matchingCacheEntry(l.id, cacheKey);
+      const cachedTitle =
+        cachedEntry && cachedEntry.title_source === original
+          ? cachedEntry.title_translated
+          : "";
+      if (cachedTitle.trim()) {
+        try {
+          await localSetTranslatedTitle(l.id, cachedTitle);
+          const target = items.value.find((it) => it.id === l.id);
+          if (target) {
+            target.translated_title = cachedTitle;
+          }
+        } catch {
+          translateProgress.value.failed++;
+        } finally {
+          translateProgress.value.done++;
+        }
+        continue;
+      }
       try {
         const result = await translateTitle(
           s.tl_base_url, s.tl_model, s.tl_api_key,
@@ -108,6 +145,7 @@ async function translateAll() {
           s.tl_use_proxy,
         );
         await localSetTranslatedTitle(l.id, result);
+        void cacheTitleTranslation(l.id, cacheKey, original, result);
         // Update the in-memory item so the card re-renders with the new title.
         const target = items.value.find((it) => it.id === l.id);
         if (target) {

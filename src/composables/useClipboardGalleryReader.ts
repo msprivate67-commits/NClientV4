@@ -128,7 +128,7 @@ export function useClipboardGalleryReader(i18n: Composer): void {
   }
 
   onMounted(async () => {
-    window.addEventListener("nclientt:android-share", onAndroidShare);
+    window.addEventListener("nclientv4:android-share", onAndroidShare);
     unlisten = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
       if (focused) void onWindowFocused();
     });
@@ -143,7 +143,7 @@ export function useClipboardGalleryReader(i18n: Composer): void {
   );
 
   onBeforeUnmount(() => {
-    window.removeEventListener("nclientt:android-share", onAndroidShare);
+    window.removeEventListener("nclientv4:android-share", onAndroidShare);
     unlisten?.();
     unlisten = null;
   });

@@ -11,6 +11,7 @@ export * from "./library";
 export * from "./downloads";
 export * from "./system";
 export * from "./translation";
+export * from "./translationCache";
 
 export type {
   AuthCredentials,

@@ -43,7 +43,7 @@ pub fn init() -> TauriPlugin<Wry> {
         .setup(|app: &AppHandle<Wry>, _api| {
             #[cfg(target_os = "android")]
             let privacy = AndroidPrivacy {
-                handle: _api.register_android_plugin("com.nclientt.app", "PrivacyPlugin")?,
+                handle: _api.register_android_plugin("com.nclientv4.app", "PrivacyPlugin")?,
             };
             #[cfg(not(target_os = "android"))]
             let privacy = AndroidPrivacy {};

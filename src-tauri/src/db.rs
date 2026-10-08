@@ -35,7 +35,7 @@ impl std::fmt::Debug for Database {
 impl Database {
     pub fn open(app_data: &Path) -> AppResult<Self> {
         std::fs::create_dir_all(app_data).ok();
-        let path = app_data.join("nclientt.db");
+        let path = app_data.join("nclientv4.db");
         let conn = Connection::open(&path)?;
         conn.pragma_update(None, "journal_mode", "WAL")?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
@@ -252,6 +252,26 @@ pub struct FavoriteRow {
     pub added_at: String,
 }
 
+/// One gallery's cached AI translations, keyed by the gallery ID.
+///
+/// `tags` maps a tag ID to `{ name, translated }` and `comments` maps a
+/// comment ID to `{ body, translated }`. The source text is stored alongside
+/// every translation so the frontend can detect a stale entry (renamed tag or
+/// edited comment) without trusting the cache blindly. `config_key` fingerprints
+/// the translation settings the entry was produced with (endpoint / model /
+/// target language / thinking / proxy) — entries from a different config are
+/// treated as misses.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TranslationCacheRow {
+    pub gallery_id: i64,
+    pub config_key: String,
+    pub title_source: String,
+    pub title_translated: String,
+    pub tags: serde_json::Value,
+    pub comments: serde_json::Value,
+    pub updated_at: String,
+}
+
 /// Global database reference, registered by the runtime at startup so the
 /// API client (which doesn't carry a `Database` handle) can still read the
 /// local tag cache.
@@ -388,6 +408,20 @@ const MIGRATIONS: &[&str] = &[
         page       INTEGER NOT NULL DEFAULT 1,
         total_pages INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT NOT NULL
+    );",
+    // AI translation cache: one row per gallery, keyed by the gallery ID.
+    // Holds the translated title plus per-tag / per-comment translations so a
+    // repeat visit never spends another AI request on the same gallery. The
+    // row count is trimmed to the user-configured limit (`tl_cache_limit`)
+    // after every write.
+    "CREATE TABLE IF NOT EXISTS translation_cache (
+        gallery_id       INTEGER PRIMARY KEY,
+        config_key       TEXT NOT NULL DEFAULT '',
+        title_source     TEXT NOT NULL DEFAULT '',
+        title_translated TEXT NOT NULL DEFAULT '',
+        tags             TEXT NOT NULL DEFAULT '{}',
+        comments         TEXT NOT NULL DEFAULT '{}',
+        updated_at       TEXT NOT NULL
     );",
 ];
 
@@ -792,6 +826,100 @@ impl Database {
             Ok(rows)
         })
     }
+
+    // AI translation cache -------------------------------------------------
+
+    pub fn translation_cache_get(&self, gallery_id: i64) -> AppResult<Option<TranslationCacheRow>> {
+        self.with_conn(|c| {
+            let mut stmt = c.prepare(
+                "SELECT gallery_id, config_key, title_source, title_translated,
+                        tags, comments, updated_at
+                 FROM translation_cache WHERE gallery_id = ?1",
+            )?;
+            let mut rows = stmt.query_map(params![gallery_id], |r| row_to_translation_cache(r))?;
+            Ok(rows.next().transpose()?)
+        })
+    }
+
+    /// Insert or refresh one gallery's cache entry (stamping `updated_at`)
+    /// and trim the table to `limit` most-recently-updated galleries.
+    pub fn translation_cache_upsert(
+        &self,
+        entry: &TranslationCacheRow,
+        limit: u32,
+    ) -> AppResult<()> {
+        self.with_conn(|c| {
+            let tags = serde_json::to_string(&entry.tags).unwrap_or_else(|_| "{}".into());
+            let comments = serde_json::to_string(&entry.comments).unwrap_or_else(|_| "{}".into());
+            c.execute(
+                "INSERT INTO translation_cache (gallery_id, config_key, title_source,
+                                                title_translated, tags, comments, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                 ON CONFLICT(gallery_id) DO UPDATE SET
+                    config_key       = excluded.config_key,
+                    title_source     = excluded.title_source,
+                    title_translated = excluded.title_translated,
+                    tags             = excluded.tags,
+                    comments         = excluded.comments,
+                    updated_at       = excluded.updated_at",
+                params![
+                    entry.gallery_id,
+                    entry.config_key,
+                    entry.title_source,
+                    entry.title_translated,
+                    tags,
+                    comments,
+                    Utc::now().to_rfc3339()
+                ],
+            )?;
+            // Enforce the per-gallery cap: keep the newest `limit` rows.
+            // A limit of 0 disables caching entirely (the row just written
+            // is removed again by the trim).
+            if limit == 0 {
+                c.execute("DELETE FROM translation_cache", [])?;
+            } else {
+                c.execute(
+                    "DELETE FROM translation_cache WHERE gallery_id NOT IN (
+                        SELECT gallery_id FROM translation_cache
+                        ORDER BY updated_at DESC, gallery_id DESC LIMIT ?1
+                     );",
+                    params![limit as i64],
+                )?;
+            }
+            Ok(())
+        })
+    }
+
+    /// Drop every cached translation. Returns the number of removed rows.
+    pub fn translation_cache_clear(&self) -> AppResult<usize> {
+        self.with_conn(|c| {
+            let removed = c.execute("DELETE FROM translation_cache", [])?;
+            Ok(removed)
+        })
+    }
+
+    /// Number of galleries currently held in the translation cache.
+    pub fn translation_cache_count(&self) -> AppResult<i64> {
+        self.with_conn(|c| {
+            let count: i64 =
+                c.query_row("SELECT COUNT(*) FROM translation_cache", [], |r| r.get(0))?;
+            Ok(count)
+        })
+    }
+}
+
+fn row_to_translation_cache(r: &rusqlite::Row<'_>) -> rusqlite::Result<TranslationCacheRow> {
+    let tags_json: String = r.get(4)?;
+    let comments_json: String = r.get(5)?;
+    Ok(TranslationCacheRow {
+        gallery_id: r.get(0)?,
+        config_key: r.get(1)?,
+        title_source: r.get(2)?,
+        title_translated: r.get(3)?,
+        tags: serde_json::from_str(&tags_json).unwrap_or_else(|_| serde_json::json!({})),
+        comments: serde_json::from_str(&comments_json).unwrap_or_else(|_| serde_json::json!({})),
+        updated_at: r.get(6)?,
+    })
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -837,5 +965,86 @@ fn parse_status(s: &str) -> TagStatus {
         "accepted" => TagStatus::Accepted,
         "avoided" => TagStatus::Avoided,
         _ => TagStatus::Default,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn test_db(name: &str) -> Database {
+        let dir = std::env::temp_dir().join(format!(
+            "nclientv4-db-{name}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        Database::open(&dir).unwrap()
+    }
+
+    fn entry(gallery_id: i64, title: &str) -> TranslationCacheRow {
+        TranslationCacheRow {
+            gallery_id,
+            config_key: "cfg".into(),
+            title_source: "source".into(),
+            title_translated: title.into(),
+            tags: json!({ "1": { "name": "tag", "translated": "标签" } }),
+            comments: json!({}),
+            updated_at: String::new(),
+        }
+    }
+
+    #[test]
+    fn translation_cache_roundtrip() {
+        let db = test_db("roundtrip");
+        assert_eq!(db.translation_cache_count().unwrap(), 0);
+        assert!(db.translation_cache_get(123).unwrap().is_none());
+
+        db.translation_cache_upsert(&entry(123, "译名"), 100)
+            .unwrap();
+        let stored = db.translation_cache_get(123).unwrap().unwrap();
+        assert_eq!(stored.gallery_id, 123);
+        assert_eq!(stored.title_source, "source");
+        assert_eq!(stored.title_translated, "译名");
+        assert_eq!(stored.config_key, "cfg");
+        assert_eq!(
+            stored.tags.get("1").unwrap().get("translated").unwrap(),
+            "标签"
+        );
+        assert!(!stored.updated_at.is_empty());
+        assert_eq!(db.translation_cache_count().unwrap(), 1);
+    }
+
+    #[test]
+    fn translation_cache_upsert_overwrites_and_trims_to_limit() {
+        let db = test_db("trim");
+        // Three galleries, then a re-write of the first (refreshes its place).
+        db.translation_cache_upsert(&entry(1, "a"), 100).unwrap();
+        db.translation_cache_upsert(&entry(2, "b"), 100).unwrap();
+        db.translation_cache_upsert(&entry(3, "c"), 100).unwrap();
+        db.translation_cache_upsert(&entry(1, "a2"), 100).unwrap();
+
+        // Limit 2 keeps the two most recently updated galleries (1 and 3);
+        // gallery 2 is the oldest.
+        db.translation_cache_upsert(&entry(4, "d"), 2).unwrap();
+        let ids = |db: &Database| -> Vec<i64> {
+            (1..=4)
+                .filter(|id| db.translation_cache_get(*id).unwrap().is_some())
+                .collect()
+        };
+        assert_eq!(ids(&db), vec![1, 4]);
+        assert_eq!(
+            db.translation_cache_get(1)
+                .unwrap()
+                .unwrap()
+                .title_translated,
+            "a2"
+        );
+
+        assert_eq!(db.translation_cache_clear().unwrap(), 2);
+        assert_eq!(db.translation_cache_count().unwrap(), 0);
     }
 }

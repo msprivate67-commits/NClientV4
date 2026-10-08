@@ -1,4 +1,4 @@
-# NClientT Backend Architecture
+# NClientV4 Backend Architecture
 
 The Rust backend is organized around the nhentai API v2, local persistence,
 download management, and Tauri command handlers.
@@ -22,7 +22,7 @@ download management, and Tauri command handlers.
 
 Every request to `/api/v2/...` carries:
 
-- `User-Agent: NClientT/<version> (unofficial nhentai desktop client)`
+- `User-Agent: NClientV4/<version> (unofficial nhentai desktop client)`
 - `Authorization: Key <api_key>` when an API key is set
 
 The 401/403 invalidation flag is represented by `AuthCredentials.valid` and

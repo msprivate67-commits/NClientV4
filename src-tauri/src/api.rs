@@ -144,7 +144,7 @@ impl ApiClient {
         // at least 1 character".  Use a dummy negative tag that matches every
         // gallery.
         if query.is_empty() {
-            query = "-nclientt".to_string();
+            query = "-nclientv4".to_string();
         }
         let mut url = format!("{}{}&page={}", base, query, q.page);
         if let Some(srt) = q.sort.url_addition() {

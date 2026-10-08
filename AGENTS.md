@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-NClientT is a Tauri 2 application with a Vue 3/TypeScript frontend and a Rust backend.
+NClientV4 is a Tauri 2 application with a Vue 3/TypeScript frontend and a Rust backend.
 
 - `src/views/` contains route-level screens; `src/components/` contains reusable UI.
 - `src/stores/` holds Pinia domain state, and `src/composables/` holds reusable Vue/browser behavior.

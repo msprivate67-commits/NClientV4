@@ -231,6 +231,7 @@ export interface Settings {
   tl_auto_translate: boolean;
   tl_auto_translate_gallery_titles: boolean;
   tl_use_proxy: boolean;
+  tl_cache_limit: number;
 
   app_language: string;
   theme: ThemePreference;

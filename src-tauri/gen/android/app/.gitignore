@@ -1,4 +1,4 @@
-/src/main/java/com/nclientt/app/generated
+/src/main/java/com/nclientv4/app/generated
 /src/main/jniLibs/**/*.so
 /src/main/assets/tauri.conf.json
 /src/main/assets/icons/

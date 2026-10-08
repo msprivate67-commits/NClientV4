@@ -2,7 +2,13 @@
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { Ban, ChevronDown, ChevronUp, Languages, Loader, ShieldCheck } from "@lucide/vue";
 
-import { translateTags } from "@/api";
+import {
+  cacheTagTranslations,
+  matchingCacheEntry,
+  splitCachedTags,
+  titleCacheConfigKey,
+  translateTags,
+} from "@/api";
 import TagChip from "@/components/TagChip.vue";
 import { useSettingsStore } from "@/stores/settings";
 import type { Tag } from "@/types";
@@ -11,6 +17,8 @@ const props = defineProps<{
   groups: Map<string, Tag[]>;
   expanded: boolean;
   blacklistedIds?: Set<number>;
+  /** Gallery the tags belong to; enables the per-gallery translation cache. */
+  galleryId?: number;
 }>();
 
 defineEmits<{
@@ -48,12 +56,38 @@ async function translateAll() {
   translateError.value = "";
   reasoningText.value = "";
   const settings = settingsStore.settings;
+  const cacheKey = titleCacheConfigKey({
+    baseUrl: settings.tl_base_url,
+    model: settings.tl_model,
+    targetLang: settings.tl_target_lang,
+    thinking: settings.tl_thinking,
+    useProxy: settings.tl_use_proxy,
+  });
+
+  // Cache first: reuse this gallery's stored tag translations and only send
+  // the ones that are missing (or renamed) to the AI.
+  const galleryId = props.galleryId ?? 0;
+  let cached = new Map<number, string>();
+  let pending = allTags.value.map(({ id, name }) => ({ id, name }));
+  const cachedEntry = await matchingCacheEntry(galleryId, cacheKey);
+  if (cachedEntry) {
+    const split = splitCachedTags(cachedEntry, pending);
+    cached = split.hits;
+    pending = split.misses;
+    if (!pending.length) {
+      translations.value = cached;
+      translating.value = false;
+      translationController = null;
+      return;
+    }
+  }
+
   try {
-    translations.value = await translateTags(
+    const fresh = await translateTags(
       settings.tl_base_url,
       settings.tl_model,
       settings.tl_api_key,
-      allTags.value.map(({ id, name }) => ({ id, name })),
+      pending,
       settings.tl_target_lang,
       settings.tl_thinking,
       settings.tl_use_proxy,
@@ -66,9 +100,14 @@ async function translateAll() {
         },
       },
     );
+    const merged = new Map([...cached, ...fresh]);
+    translations.value = merged;
+    void cacheTagTranslations(galleryId, cacheKey, pending, fresh);
   } catch (error: unknown) {
     if (!controller.signal.aborted) {
       translateError.value = error instanceof Error ? error.message : String(error);
+      // Still surface whatever came from the cache.
+      if (cached.size) translations.value = cached;
     }
   } finally {
     if (translationController === controller) {

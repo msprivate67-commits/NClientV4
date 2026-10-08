@@ -1,7 +1,12 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 
-import { translateTitle } from "@/api";
+import {
+  cacheTitleTranslation,
+  matchingCacheEntry,
+  titleCacheConfigKey,
+  translateTitle,
+} from "@/api";
 import { useSettingsStore } from "@/stores/settings";
 
 export interface TitleTranslationState {
@@ -83,13 +88,7 @@ export const useTitleTranslationsStore = defineStore("titleTranslations", () => 
       thinking: settings.settings.tl_thinking,
       useProxy: settings.settings.tl_use_proxy,
     };
-    const configKey = JSON.stringify({
-      baseUrl: config.baseUrl,
-      model: config.model,
-      targetLang: config.targetLang,
-      thinking: config.thinking,
-      useProxy: config.useProxy,
-    });
+    const configKey = titleCacheConfigKey(config);
     const current = entry(galleryId);
     if (!options.force && current?.sourceTitle === title && current.configKey === configKey) {
       if (current.queued && options.priority) promote(galleryId);
@@ -138,6 +137,21 @@ export const useTitleTranslationsStore = defineStore("titleTranslations", () => 
       reasoning: "",
       error: "",
     });
+
+    // Persistent cache first: a stored translation produced by the same
+    // config for the same source title skips the AI request entirely.
+    const cacheKey = titleCacheConfigKey(job.config);
+    const cachedEntry = await matchingCacheEntry(job.galleryId, cacheKey);
+    const cachedTitle =
+      cachedEntry && cachedEntry.title_source === job.sourceTitle
+        ? cachedEntry.title_translated
+        : "";
+    if (cachedTitle.trim()) {
+      if (!isCurrent(job, controller)) return;
+      update(job.galleryId, { translated: cachedTitle, translating: false });
+      return;
+    }
+
     try {
       const translated = await translateTitle(
         job.config.baseUrl,
@@ -165,6 +179,7 @@ export const useTitleTranslationsStore = defineStore("titleTranslations", () => 
       );
       if (!isCurrent(job, controller)) return;
       update(job.galleryId, { translated, translating: false });
+      void cacheTitleTranslation(job.galleryId, cacheKey, job.sourceTitle, translated);
     } catch (error: unknown) {
       if (!isCurrent(job, controller)) return;
       update(job.galleryId, {

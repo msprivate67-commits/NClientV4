@@ -66,7 +66,7 @@ pub fn init() -> TauriPlugin<Wry> {
         .setup(|app: &AppHandle<Wry>, _api| {
             #[cfg(target_os = "android")]
             let share = AndroidShare {
-                handle: _api.register_android_plugin("com.nclientt.app", "SharePlugin")?,
+                handle: _api.register_android_plugin("com.nclientv4.app", "SharePlugin")?,
             };
             #[cfg(not(target_os = "android"))]
             let share = AndroidShare {};

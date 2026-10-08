@@ -1,11 +1,11 @@
-# NClientT
+# NClientV4
 
 [English](README.md) | [简体中文](README_zh.md)
 
-[![Release](https://img.shields.io/github/v/release/msprivate67-commits/NClientT?color=green)](https://github.com/msprivate67-commits/NClientT/releases/latest)
-[![License](https://img.shields.io/github/license/msprivate67-commits/NClientT?color=blue)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/msprivate67-commits/NClientV4?color=green)](https://github.com/msprivate67-commits/NClientV4/releases/latest)
+[![License](https://img.shields.io/github/license/msprivate67-commits/NClientV4?color=blue)](LICENSE)
 
-**NClientT** 是一款非官方的 [nhentai](https://nhentai.net) 跨平台客户端，提供浏览、搜索、阅读、收藏和下载画廊等功能。支持 Android、Windows、macOS 和 Linux。
+**NClientV4** 是一款非官方的 [nhentai](https://nhentai.net) 跨平台客户端，提供浏览、搜索、阅读、收藏和下载画廊等功能。支持 Android、Windows、macOS 和 Linux。
 
 > ⚠️ 本项目仅供个人学习与使用。请遵守 nhentai 的服务条款以及你所在地区的法律法规。
 
@@ -27,7 +27,7 @@
 
 ## 下载
 
-请前往 [最新 Release](https://github.com/msprivate67-commits/NClientT/releases/latest) 下载适用于当前版本的安装包。
+请前往 [最新 Release](https://github.com/msprivate67-commits/NClientV4/releases/latest) 下载适用于当前版本的安装包。
 
 官方 Android APK 面向现代 64 位 ARM 设备（`arm64-v8a`）。旧款 32 位 ARM 设备（`armeabi-v7a`）请按照下方“编译旧版 Android APK”章节自行构建。
 
@@ -83,8 +83,8 @@
 ### 快速开始
 
 ```bash
-git clone https://github.com/msprivate67-commits/NClientT.git
-cd NClientT
+git clone https://github.com/msprivate67-commits/NClientV4.git
+cd NClientV4
 npm ci
 
 # 启动完整桌面应用开发环境
@@ -120,11 +120,11 @@ npm run android:build:legacy
 
 1. 安装 Rust 的 `armv7-linux-androideabi` 编译目标（如果尚未安装）。
 2. 构建 `armeabi-v7a` Release APK。
-3. 在存在 `src-tauri/nclientt.keystore` 和 Android `apksigner` 时签名并验证 APK。
+3. 在存在 `src-tauri/nclientv4.keystore` 和 Android `apksigner` 时签名并验证 APK。
 4. 将最终文件写入：
 
 ```text
-artifacts/NClientT-<版本号>-android-armeabi-v7a.apk
+artifacts/NClientV4-<版本号>-android-armeabi-v7a.apk
 ```
 
 若要使用自己的签名密钥，请在运行脚本前设置：
@@ -149,7 +149,7 @@ artifacts/NClientT-<版本号>-android-armeabi-v7a.apk
 ## 项目结构
 
 ```text
-NClientT/
+NClientV4/
 ├── src/                       # Vue 3 前端
 │   ├── api/                   # 按领域拆分的 Tauri/服务调用层
 │   ├── components/            # 可复用组件
@@ -169,9 +169,9 @@ NClientT/
 
 ## API Key（可选）
 
-浏览、搜索、阅读和下载无需 API Key。填写 API Key 后，NClientT 可以使用你的 nhentai 账号状态：本地收藏会写入在线收藏，之后的收藏变更会保持同步，详情页能显示在线收藏状态，也可以加载评论等账号功能。
+浏览、搜索、阅读和下载无需 API Key。填写 API Key 后，NClientV4 可以使用你的 nhentai 账号状态：本地收藏会写入在线收藏，之后的收藏变更会保持同步，详情页能显示在线收藏状态，也可以加载评论等账号功能。
 
-获取方式：登录 nhentai，点击右上角头像，进入 **Settings**，点击 **API Keys**，复制 key，然后粘贴到 NClientT 的“设置 → API Key 与收藏同步”。设置页里的“获取 API Key”按钮也会直接打开对应页面。
+获取方式：登录 nhentai，点击右上角头像，进入 **Settings**，点击 **API Keys**，复制 key，然后粘贴到 NClientV4 的“设置 → API Key 与收藏同步”。设置页里的“获取 API Key”按钮也会直接打开对应页面。
 
 ## Cloudflare
 

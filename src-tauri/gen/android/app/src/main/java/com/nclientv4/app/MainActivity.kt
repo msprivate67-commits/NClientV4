@@ -1,4 +1,4 @@
-package com.nclientt.app
+package com.nclientv4.app
 
 import android.content.Intent
 import android.os.Bundle
@@ -61,7 +61,7 @@ class MainActivity : TauriActivity() {
         val webView = findWebView(findViewById(android.R.id.content))
         webView?.post {
             webView.evaluateJavascript(
-                "window.dispatchEvent(new CustomEvent('nclientt:android-share'));",
+                "window.dispatchEvent(new CustomEvent('nclientv4:android-share'));",
                 null,
             )
         }
@@ -71,7 +71,7 @@ class MainActivity : TauriActivity() {
         val webView = findWebView(findViewById(android.R.id.content))
         webView?.post {
             webView.evaluateJavascript(
-                "window.dispatchEvent(new CustomEvent('nclientt:android-back'));",
+                "window.dispatchEvent(new CustomEvent('nclientv4:android-back'));",
                 null,
             )
         }

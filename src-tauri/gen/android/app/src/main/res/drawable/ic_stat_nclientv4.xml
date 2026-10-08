@@ -5,7 +5,7 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <!-- Android masks notification icons to a single color; this keeps the
-         NClientT mark recognizable instead of falling back to Tauri's icon. -->
+         NClientV4 mark recognizable instead of falling back to Tauri's icon. -->
     <path
         android:fillColor="#FFFFFFFF"
         android:pathData="M4,3 L8,3 L8,21 L4,21 Z M16,3 L20,3 L20,21 L16,21 Z M6.8,3 L10.4,3 L17.2,21 L13.6,21 Z" />

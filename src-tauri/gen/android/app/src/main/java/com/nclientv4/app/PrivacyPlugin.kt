@@ -1,4 +1,4 @@
-package com.nclientt.app
+package com.nclientv4.app
 
 import android.app.Activity
 import android.content.Context
@@ -17,7 +17,7 @@ class SetPrivacyScreenArgs {
 @TauriPlugin
 class PrivacyPlugin(private val activity: Activity) : Plugin(activity) {
     private val preferences = activity.getSharedPreferences(
-        "nclientt_android_privacy",
+        "nclientv4_android_privacy",
         Context.MODE_PRIVATE,
     )
 

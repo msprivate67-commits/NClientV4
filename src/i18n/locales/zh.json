@@ -10,7 +10,7 @@
     "settings": "设置",
     "get_latest": "获取最新版",
     "feedback": "问题反馈",
-    "brand": "NClientT",
+    "brand": "NClientV4",
     "short_brand": "N",
     "current_version": "当前",
     "latest_version": "最新",
@@ -49,7 +49,7 @@
     "no": "否",
     "on": "开",
     "off": "关",
-    "branch": "NClientT"
+    "branch": "NClientV4"
   },
   "home": {
     "title": "首页",
@@ -338,6 +338,12 @@
     "ai_auto_translate": "自动翻译在线画廊标题与评论",
     "ai_auto_translate_gallery_titles": "在后台自动翻译全部在线画廊标题",
     "ai_use_proxy": "AI 请求使用已配置的代理",
+    "ai_cache_limit": "翻译缓存上限（漫画数）",
+    "ai_cache_limit_hint": "按画廊 ID 存储 AI 翻译结果（标题、标签、评论）。命中缓存时直接调用，不再请求 AI。0 表示不缓存；超过上限时自动清理最旧的记录。",
+    "ai_cache_count": "当前已缓存 {n} 部漫画",
+    "ai_cache_clear": "清理缓存记录",
+    "ai_cache_clear_confirm": "确定清理全部 {n} 条 AI 翻译缓存记录吗？清理后将重新调用 AI 翻译。",
+    "ai_cache_hint": "记录按漫画的画廊 ID 存储。清理缓存不影响已下载的翻译标题。",
     "app_data_dir": "应用数据目录：",
     "app_language": "应用语言",
     "app_language_hint": "选择界面语言。应用首次启动时自动检测系统语言。",

@@ -24,7 +24,11 @@ import {
 } from "@lucide/vue";
 import {
   androidShareText,
+  cacheCommentTranslations,
+  cachedCommentTranslation,
+  commentCacheConfigKey,
   imageProxyUrl,
+  matchingCacheEntry,
   openInBrowser,
   translateComment,
 } from "@/api";
@@ -208,6 +212,30 @@ async function runCommentTranslation(comment: Comment, runId: number) {
     error: "",
   });
   const s = settings.settings;
+  // Cache first: this gallery's stored translation for this exact comment
+  // (source body must still match) skips the AI request.
+  const galleryId = comment.gallery_id || g.value?.id || 0;
+  const cacheKey = commentCacheConfigKey({
+    baseUrl: s.tl_base_url,
+    model: s.tl_model,
+    commentTargetLang: s.tl_comment_target_lang,
+    thinking: s.tl_thinking,
+    useProxy: s.tl_use_proxy,
+  });
+  const cachedEntry = await matchingCacheEntry(galleryId, cacheKey);
+  const cached = cachedEntry
+    ? cachedCommentTranslation(cachedEntry, comment.id, comment.body)
+    : null;
+  if (cached) {
+    if (runId !== commentTranslationRunId || controller.signal.aborted) return;
+    updateCommentTranslation(comment.id, {
+      translated: cached,
+      reasoningExpanded: false,
+      translating: false,
+    });
+    commentTranslationControllers.delete(comment.id);
+    return;
+  }
   try {
     const translated = await translateComment(
       s.tl_base_url,
@@ -243,6 +271,9 @@ async function runCommentTranslation(comment: Comment, runId: number) {
       reasoningExpanded: false,
       translating: false,
     });
+    void cacheCommentTranslations(galleryId, cacheKey, [
+      { id: comment.id, body: comment.body, translated },
+    ]);
   } catch (error: unknown) {
     if (runId !== commentTranslationRunId || controller.signal.aborted) return;
     updateCommentTranslation(comment.id, {
@@ -716,6 +747,7 @@ async function toggleTagBlacklist(tag: import("@/types").Tag) {
         v-model:expanded="tagsExpanded"
         :groups="tagsByType"
         :blacklisted-ids="tagsStore.blacklistedIds"
+        :gallery-id="g.id"
         @select="onTagClick"
         @toggle-blacklist="toggleTagBlacklist"
       />

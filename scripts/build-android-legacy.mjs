@@ -154,7 +154,7 @@ const apkSignerJar = androidSdk ? findApkSigner(androidSdk) : undefined;
 if (keystorePath && existsSync(keystorePath) && apkSignerJar) {
   const signedApk = join(
     artifactDir,
-    `NClientT-${version}-android-${targetConfig.artifactAbi}.apk`,
+    `NClientV4-${version}-android-${targetConfig.artifactAbi}.apk`,
   );
   const keystorePassword = process.env.ANDROID_KEYSTORE_PASSWORD;
   const keyAlias = process.env.ANDROID_KEY_ALIAS;
@@ -193,7 +193,7 @@ if (keystorePath && existsSync(keystorePath) && apkSignerJar) {
   }
   const copiedApk = join(
     artifactDir,
-    `NClientT-${version}-android-${targetConfig.artifactAbi}-unsigned.apk`,
+    `NClientV4-${version}-android-${targetConfig.artifactAbi}-unsigned.apk`,
   );
   copyFileSync(unsignedApk, copiedApk);
   console.warn(

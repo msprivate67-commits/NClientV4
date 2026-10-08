@@ -219,7 +219,7 @@ function handleBackButton() {
 // presses to actually navigate).
 
 onMounted(() => {
-  window.addEventListener("nclientt:android-back", handleBackButton);
+  window.addEventListener("nclientv4:android-back", handleBackButton);
 
   // Hijack the Android hardware back button globally. Registering this callback
   // prevents the WebView from running its default goBack/exit, so the app can
@@ -236,7 +236,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("nclientt:android-back", handleBackButton);
+  window.removeEventListener("nclientv4:android-back", handleBackButton);
   backButtonUnlisten?.unregister();
   backButtonUnlisten = null;
 });
@@ -261,7 +261,7 @@ const {
   onPointerMove: onSpeedMove,
   onPointerUp: onSpeedUp,
 } = useDraggablePosition({
-  storageKey: "nclientt:speedFloat:pos",
+  storageKey: "nclientv4:speedFloat:pos",
   rightMargin: 80,
   bottomMargin: 32,
   minimumMaxX: 40,

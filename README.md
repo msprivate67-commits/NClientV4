@@ -1,11 +1,11 @@
-# NClientT
+# NClientV4
 
 [English](README.md) | [简体中文](README_zh.md)
 
-[![Release](https://img.shields.io/github/v/release/msprivate67-commits/NClientT?color=green)](https://github.com/msprivate67-commits/NClientT/releases/latest)
-[![License](https://img.shields.io/github/license/msprivate67-commits/NClientT?color=blue)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/msprivate67-commits/NClientV4?color=green)](https://github.com/msprivate67-commits/NClientV4/releases/latest)
+[![License](https://img.shields.io/github/license/msprivate67-commits/NClientV4?color=blue)](LICENSE)
 
-**NClientT** is an unofficial [nhentai](https://nhentai.net) cross-platform client — browse, search, read, favorite, and download doujinshi galleries with a modern native experience. Available on Android, Windows, macOS, and Linux.
+**NClientV4** is an unofficial [nhentai](https://nhentai.net) cross-platform client — browse, search, read, favorite, and download doujinshi galleries with a modern native experience. Available on Android, Windows, macOS, and Linux.
 
 > ⚠️ This is a hobbyist project for personal use only. Respect nhentai's Terms of Service and your local laws.
 
@@ -31,7 +31,7 @@
 ### Download Link
 
 <p align="center">
-  <a href="https://github.com/msprivate67-commits/NClientT/releases/latest">
+  <a href="https://github.com/msprivate67-commits/NClientV4/releases/latest">
     <strong>📥 Download Latest Release</strong>
   </a>
 </p>
@@ -68,7 +68,7 @@
 ### Download Link
 
 <p align="center">
-  <a href="https://github.com/msprivate67-commits/NClientT/releases/latest">
+  <a href="https://github.com/msprivate67-commits/NClientV4/releases/latest">
     <strong>📥 Download Latest Release</strong>
   </a>
 </p>
@@ -106,8 +106,8 @@
 
 ```bash
 # Clone & install
-git clone https://github.com/msprivate67-commits/NClientT.git
-cd NClientT
+git clone https://github.com/msprivate67-commits/NClientV4.git
+cd NClientV4
 
 # Install frontend dependencies
 npm ci
@@ -157,11 +157,11 @@ npm run android:build:legacy
 ```
 
 The script installs the Rust armv7 target when needed, builds a release APK,
-signs it with `src-tauri/nclientt.keystore` when available, verifies the
+signs it with `src-tauri/nclientv4.keystore` when available, verifies the
 signature, and writes the result to:
 
 ```text
-artifacts/NClientT-<version>-android-armeabi-v7a.apk
+artifacts/NClientV4-<version>-android-armeabi-v7a.apk
 ```
 
 To use another signing key, set `ANDROID_KEYSTORE_PATH`,
@@ -172,7 +172,7 @@ keystore are available, the script keeps an `-unsigned.apk` artifact instead.
 ## 📂 Project Structure
 
 ```
-NClientT/
+NClientV4/
 ├── src/                    # Vue 3 frontend
 │   ├── api/                # Domain-based Tauri/service gateway
 │   ├── components/         # GalleryCard, TagChip, DownloadItem, ...
@@ -207,9 +207,9 @@ dependency rules and module responsibilities.
 
 ## 🔑 API Key (Optional)
 
-Browsing, searching, reading, and downloading all work without an API key. Adding one lets NClientT use your nhentai account state: local favorites are uploaded to your online favorites, future favorite changes stay synced, gallery detail can show whether something is already favorited, and account-only features such as comments can load.
+Browsing, searching, reading, and downloading all work without an API key. Adding one lets NClientV4 use your nhentai account state: local favorites are uploaded to your online favorites, future favorite changes stay synced, gallery detail can show whether something is already favorited, and account-only features such as comments can load.
 
-To get a key, log in on nhentai, click your avatar in the top-right corner, open **Settings**, choose **API Keys**, copy a key, then paste it under **Settings → API Key and sync** in NClientT. The settings page also has a **Get API key** button that opens the nhentai API page for you.
+To get a key, log in on nhentai, click your avatar in the top-right corner, open **Settings**, choose **API Keys**, copy a key, then paste it under **Settings → API Key and sync** in NClientV4. The settings page also has a **Get API key** button that opens the nhentai API page for you.
 
 ## ☁️ Cloudflare
 

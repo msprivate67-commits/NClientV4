@@ -25,10 +25,10 @@ fun readVersionFromTauriConf(): String {
 
 android {
     compileSdk = 36
-    namespace = "com.nclientt.app"
+    namespace = "com.nclientv4.app"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
-        applicationId = "com.nclientt.app"
+        applicationId = "com.nclientv4.app"
         minSdk = 24
         targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()

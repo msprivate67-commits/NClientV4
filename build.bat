@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 chcp 65001 >nul
 
 echo ============================================
-echo   NClientT - Build EXE
+echo   NClientV4 - Build EXE
 echo ============================================
 echo.
 
@@ -48,7 +48,7 @@ if %errorlevel% neq 0 (
 cd ..
 
 :: ── output ──────────────────────────────────────
-set "EXE=%CD%\src-tauri\target\release\nclientt.exe"
+set "EXE=%CD%\src-tauri\target\release\nclientv4.exe"
 
 echo.
 echo ============================================

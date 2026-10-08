@@ -19,6 +19,8 @@ import {
   settingsPickDirectory,
   settingsListDownloadCandidates,
   testTranslationConnection,
+  translationCacheClear,
+  translationCacheCount,
 } from "@/api";
 import {
   defaultCommentTranslationTarget,
@@ -61,6 +63,32 @@ watch(() => settings.loaded, (loaded) => {
 // tweak base URL / model / key and re-test without saving first.
 const tlTesting = ref(false);
 const tlResult = ref<{ ok: boolean; message: string } | null>(null);
+
+// AI translation cache state: how many galleries are stored, plus the clear
+// action. The per-gallery cap itself is part of the draft settings above.
+const cacheCount = ref(0);
+const cacheClearing = ref(false);
+
+async function refreshCacheCount() {
+  try {
+    cacheCount.value = await translationCacheCount();
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+async function clearTranslationCache() {
+  const n = cacheCount.value;
+  if (n <= 0 || cacheClearing.value) return;
+  if (!window.confirm(String(i18n.t("settings.ai_cache_clear_confirm", { n })))) return;
+  cacheClearing.value = true;
+  try {
+    await translationCacheClear();
+    cacheCount.value = 0;
+  } finally {
+    cacheClearing.value = false;
+  }
+}
 
 async function testAiConnection() {
   tlTesting.value = true;
@@ -194,7 +222,7 @@ async function exportLang() {
   try {
     const json = exportLocaleJson(currentLang.value);
     const path = await taSave({
-      defaultPath: `nclientt-${currentLang.value}.json`,
+      defaultPath: `nclientv4-${currentLang.value}.json`,
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
     if (path) {
@@ -235,6 +263,7 @@ onMounted(async () => {
     console.warn(e);
   }
   checkCf();
+  refreshCacheCount();
 });
 </script>
 
@@ -284,7 +313,7 @@ onMounted(async () => {
         </div>
         <div class="field">
           <label>{{ $t('settings.user_agent') }}</label>
-          <input v-model="draft.user_agent" type="text" placeholder="NClientT/0.1.0 ..." />
+          <input v-model="draft.user_agent" type="text" placeholder="NClientV4/4.0.1 ..." />
         </div>
         <div class="field">
           <label>{{ $t('settings.request_timeout') }}</label>
@@ -465,6 +494,24 @@ onMounted(async () => {
         <label><input type="checkbox" v-model="draft.tl_auto_translate_gallery_titles" /> {{ $t('settings.ai_auto_translate_gallery_titles') }}</label>
         <label><input type="checkbox" v-model="draft.tl_use_proxy" /> {{ $t('settings.ai_use_proxy') }}</label>
       </div>
+      <div class="fields" style="margin-top: 10px;">
+        <div class="field">
+          <label>{{ $t('settings.ai_cache_limit') }}</label>
+          <input v-model.number="draft.tl_cache_limit" type="number" min="0" max="1000000" step="100" />
+        </div>
+      </div>
+      <p class="hint">{{ $t('settings.ai_cache_limit_hint') }}</p>
+      <div class="row" style="margin-top: 10px;">
+        <span>{{ $t('settings.ai_cache_count', { n: cacheCount }) }}</span>
+        <button
+          class="btn danger"
+          :disabled="cacheCount === 0 || cacheClearing"
+          @click="clearTranslationCache"
+        >
+          {{ $t('settings.ai_cache_clear') }}
+        </button>
+      </div>
+      <p class="hint">{{ $t('settings.ai_cache_hint') }}</p>
       <div class="row" style="margin-top: 10px;">
         <button class="btn" :disabled="tlTesting" @click="testAiConnection">
           {{ tlTesting ? $t('settings.ai_testing') : $t('settings.ai_test_connection') }}

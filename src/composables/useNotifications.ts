@@ -26,7 +26,7 @@ const currentPlatform = platform();
 const ACTIVE_DOWNLOAD_NOTIFICATION_ID = 0x4e434c54;
 const ANDROID_PROGRESS_CHANNEL = "downloads-progress-v1";
 const ANDROID_COMPLETE_CHANNEL = "downloads-complete-v1";
-const ANDROID_NOTIFICATION_ICON = "ic_stat_nclientt";
+const ANDROID_NOTIFICATION_ICON = "ic_stat_nclientv4";
 
 function tfn(key: string, params?: Record<string, unknown>): string {
   const locale = getLocale() as AppLanguage;

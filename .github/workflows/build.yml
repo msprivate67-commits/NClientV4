@@ -166,8 +166,8 @@ jobs:
         run: |
           set -euo pipefail
           : "${ANDROID_KEYSTORE_BASE64:?Missing ANDROID_KEYSTORE_BASE64 Actions secret}"
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nclientt-release.keystore"
-          chmod 600 "$RUNNER_TEMP/nclientt-release.keystore"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/nclientv4-release.keystore"
+          chmod 600 "$RUNNER_TEMP/nclientv4-release.keystore"
 
       - name: Sign Android APK
         env:
@@ -190,7 +190,7 @@ jobs:
           for apk in "${unsigned_apks[@]}"; do
             signed="${apk%-unsigned.apk}.apk"
             "$BUILD_TOOLS/apksigner" sign \
-              --ks "$RUNNER_TEMP/nclientt-release.keystore" \
+              --ks "$RUNNER_TEMP/nclientv4-release.keystore" \
               --ks-pass env:ANDROID_KEYSTORE_PASSWORD \
               --ks-key-alias "$ANDROID_KEY_ALIAS" \
               --key-pass env:ANDROID_KEY_PASSWORD \
@@ -202,12 +202,12 @@ jobs:
 
       - name: Remove temporary Android keystore
         if: always()
-        run: rm -f "$RUNNER_TEMP/nclientt-release.keystore"
+        run: rm -f "$RUNNER_TEMP/nclientv4-release.keystore"
 
       - name: Upload Android artifact
         uses: actions/upload-artifact@v7
         with:
-          name: NClientT-android
+          name: NClientV4-android
           path: src-tauri/gen/android/app/build/outputs/apk/**/release/*.apk
           retention-days: 2
           if-no-files-found: error
@@ -238,9 +238,9 @@ jobs:
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: NClientT-windows
+          name: NClientV4-windows
           path: |
-            src-tauri/target/release/nclientt-bin.exe
+            src-tauri/target/release/nclientv4-bin.exe
             src-tauri/target/release/bundle/msi/**/*.msi
           retention-days: 2
           if-no-files-found: error
@@ -285,9 +285,9 @@ jobs:
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v7
         with:
-          name: NClientT-linux
+          name: NClientV4-linux
           path: |
-            src-tauri/target/release/nclientt-bin
+            src-tauri/target/release/nclientv4-bin
             src-tauri/target/release/bundle/deb/**/*.deb
           retention-days: 2
           if-no-files-found: error
@@ -312,28 +312,28 @@ jobs:
           VERSION="$(node -p "require('./package.json').version")"
           echo "BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "$GITHUB_ENV"
           echo "RELEASE_TAG=v${VERSION}" >> "$GITHUB_ENV"
-          echo "RELEASE_TITLE=NClientT v${VERSION}" >> "$GITHUB_ENV"
+          echo "RELEASE_TITLE=NClientV4 v${VERSION}" >> "$GITHUB_ENV"
 
-          windows_exe=$(find artifacts/NClientT-windows -type f -name "nclientt-bin.exe" | head -n1 || true)
+          windows_exe=$(find artifacts/NClientV4-windows -type f -name "nclientv4-bin.exe" | head -n1 || true)
           [ -n "$windows_exe" ] || { echo "ERROR: no portable Windows executable found"; exit 1; }
-          cp "$windows_exe" "release/NClientT-v${VERSION}-windows.exe"
+          cp "$windows_exe" "release/NClientV4-v${VERSION}-windows.exe"
 
-          windows_msi=$(find artifacts/NClientT-windows -type f -name "*.msi" | head -n1 || true)
+          windows_msi=$(find artifacts/NClientV4-windows -type f -name "*.msi" | head -n1 || true)
           [ -n "$windows_msi" ] || { echo "ERROR: no Windows MSI found"; exit 1; }
-          cp "$windows_msi" "release/NClientT-v${VERSION}-windows.msi"
+          cp "$windows_msi" "release/NClientV4-v${VERSION}-windows.msi"
 
-          linux_bin=$(find artifacts/NClientT-linux -type f -name "nclientt-bin" | head -n1 || true)
+          linux_bin=$(find artifacts/NClientV4-linux -type f -name "nclientv4-bin" | head -n1 || true)
           [ -n "$linux_bin" ] || { echo "ERROR: no portable Linux executable found"; exit 1; }
-          cp "$linux_bin" "release/NClientT-v${VERSION}-linux-x86_64"
-          chmod +x "release/NClientT-v${VERSION}-linux-x86_64"
+          cp "$linux_bin" "release/NClientV4-v${VERSION}-linux-x86_64"
+          chmod +x "release/NClientV4-v${VERSION}-linux-x86_64"
 
-          linux_deb=$(find artifacts/NClientT-linux -type f -name "*.deb" | head -n1 || true)
+          linux_deb=$(find artifacts/NClientV4-linux -type f -name "*.deb" | head -n1 || true)
           [ -n "$linux_deb" ] || { echo "ERROR: no Linux DEB package found"; exit 1; }
-          cp "$linux_deb" "release/NClientT-v${VERSION}-linux-amd64.deb"
+          cp "$linux_deb" "release/NClientV4-v${VERSION}-linux-amd64.deb"
 
-          android_apk=$(find artifacts/NClientT-android -type f -name "*.apk" | head -n1 || true)
+          android_apk=$(find artifacts/NClientV4-android -type f -name "*.apk" | head -n1 || true)
           [ -n "$android_apk" ] || { echo "ERROR: no Android arm64-v8a APK found"; exit 1; }
-          cp "$android_apk" "release/NClientT-v${VERSION}-android-arm64-v8a.apk"
+          cp "$android_apk" "release/NClientV4-v${VERSION}-android-arm64-v8a.apk"
 
           echo "Staged release assets:"
           ls -la release/

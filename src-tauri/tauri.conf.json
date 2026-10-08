@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NClientT",
-  "version": "0.1.9",
-  "identifier": "com.nclientt.app",
+  "productName": "NClientV4",
+  "version": "4.0.1",
+  "identifier": "com.nclientv4.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "NClientT",
+        "title": "NClientV4",
         "width": 1280,
         "height": 800,
         "minWidth": 720,
@@ -43,9 +43,9 @@
     ],
     "category": "Entertainment",
     "shortDescription": "Unofficial nhentai cross-platform client",
-    "longDescription": "NClientT is an unofficial cross-platform desktop client for nhentai — browse, search, read, favorite, and download galleries on Windows, macOS, and Linux. Add an API key to sync local favorites with your online account and enable account-based features.",
+    "longDescription": "NClientV4 is an unofficial cross-platform desktop client for nhentai — browse, search, read, favorite, and download galleries on Windows, macOS, and Linux. Add an API key to sync local favorites with your online account and enable account-based features.",
     "copyright": "Licensed under the Apache License, Version 2.0",
-    "publisher": "NClientT",
+    "publisher": "NClientV4",
     "resources": ["icons/icon.png"]
   }
 }

@@ -90,6 +90,7 @@ const DEFAULT_SETTINGS: Settings = {
   tl_auto_translate: true,
   tl_auto_translate_gallery_titles: false,
   tl_use_proxy: false,
+  tl_cache_limit: 1000,
   app_language: "",
   theme: "system",
 };

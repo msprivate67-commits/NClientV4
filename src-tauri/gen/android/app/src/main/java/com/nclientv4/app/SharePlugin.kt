@@ -1,4 +1,4 @@
-package com.nclientt.app
+package com.nclientv4.app
 
 import android.app.Activity
 import android.content.Context
@@ -11,7 +11,7 @@ import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 
 object ShareTextStore {
-    private const val PREFERENCES = "nclientt_android_share"
+    private const val PREFERENCES = "nclientv4_android_share"
     private const val PENDING_TEXT = "pending_text"
 
     fun store(context: Context, text: String) {

@@ -34,8 +34,8 @@ const props = defineProps<{
 }>();
 defineEmits<{ (e: "toggle"): void; (e: "navigate"): void }>();
 
-const GITHUB_LATEST_RELEASE = "https://github.com/msprivate67-commits/NClientT/releases/latest";
-const GITHUB_ISSUES = "https://github.com/msprivate67-commits/NClientT/issues";
+const GITHUB_LATEST_RELEASE = "https://github.com/msprivate67-commits/NClientV4/releases/latest";
+const GITHUB_ISSUES = "https://github.com/msprivate67-commits/NClientV4/issues";
 
 function openRelease() {
   openUrl(GITHUB_LATEST_RELEASE);

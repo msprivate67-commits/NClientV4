@@ -1,4 +1,4 @@
-// Generates a simple source PNG icon (1024x1024) for NClientT.
+// Generates a simple source PNG icon (1024x1024) for NClientV4.
 // Run with: `node scripts/make-icon.mjs` then
 // `npm run tauri icon src-tauri/icons/icon.png` to produce all formats.
 //

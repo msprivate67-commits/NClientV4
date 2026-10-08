@@ -4,11 +4,17 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
   apiGetComments,
+  cacheCommentTranslations,
+  cacheTitleTranslation,
+  cachedCommentTranslation,
+  commentCacheConfigKey,
   imageProxyUrl,
   localGet,
   localGetMeta,
   localSetTranslatedTitle,
+  matchingCacheEntry,
   openInBrowser,
+  titleCacheConfigKey,
   translateComment,
   translateTitle,
 } from "@/api";
@@ -225,6 +231,30 @@ async function runCommentTranslation(comment: Comment, runId: number) {
     error: "",
   });
   const s = settingsStore.settings;
+  // Cache first: this gallery's stored translation for this exact comment
+  // (source body must still match) skips the AI request.
+  const galleryId = comment.gallery_id || local.value?.id || 0;
+  const cacheKey = commentCacheConfigKey({
+    baseUrl: s.tl_base_url,
+    model: s.tl_model,
+    commentTargetLang: s.tl_comment_target_lang,
+    thinking: s.tl_thinking,
+    useProxy: s.tl_use_proxy,
+  });
+  const cachedEntry = await matchingCacheEntry(galleryId, cacheKey);
+  const cached = cachedEntry
+    ? cachedCommentTranslation(cachedEntry, comment.id, comment.body)
+    : null;
+  if (cached) {
+    if (runId !== commentTranslationRunId || controller.signal.aborted) return;
+    updateCommentTranslation(comment.id, {
+      translated: cached,
+      reasoningExpanded: false,
+      translating: false,
+    });
+    commentTranslationControllers.delete(comment.id);
+    return;
+  }
   try {
     const translated = await translateComment(
       s.tl_base_url,
@@ -260,6 +290,9 @@ async function runCommentTranslation(comment: Comment, runId: number) {
       reasoningExpanded: false,
       translating: false,
     });
+    void cacheCommentTranslations(galleryId, cacheKey, [
+      { id: comment.id, body: comment.body, translated },
+    ]);
   } catch (error: unknown) {
     if (runId !== commentTranslationRunId || controller.signal.aborted) return;
     updateCommentTranslation(comment.id, {
@@ -363,6 +396,30 @@ async function doTranslate() {
   reasoningExpanded.value = true;
   translateError.value = "";
   const s = settingsStore.settings;
+
+  // Cache first: a stored translation for this gallery produced by the same
+  // config skips the AI request entirely.
+  const galleryId = local.value.id;
+  const cacheKey = titleCacheConfigKey({
+    baseUrl: s.tl_base_url,
+    model: s.tl_model,
+    targetLang: s.tl_target_lang,
+    thinking: s.tl_thinking,
+    useProxy: s.tl_use_proxy,
+  });
+  const cachedEntry = await matchingCacheEntry(galleryId, cacheKey);
+  const cachedTitle =
+    cachedEntry && cachedEntry.title_source === title.value
+      ? cachedEntry.title_translated
+      : "";
+  if (cachedTitle.trim()) {
+    translated.value = cachedTitle;
+    reasoningExpanded.value = false;
+    translating.value = false;
+    translationController = null;
+    return;
+  }
+
   try {
     const result = await translateTitle(
       s.tl_base_url, s.tl_model, s.tl_api_key,
@@ -381,6 +438,7 @@ async function doTranslate() {
     if (translationController !== controller) return;
     translated.value = result;
     await localSetTranslatedTitle(local.value.id, result);
+    void cacheTitleTranslation(galleryId, cacheKey, title.value, result);
     if (local.value) {
       local.value = { ...local.value, translated_title: result };
     }
@@ -532,6 +590,7 @@ onUnmounted(() => {
           v-model:expanded="tagsExpanded"
           :groups="tagsByType"
           :blacklisted-ids="tagsStore.blacklistedIds"
+          :gallery-id="local.id"
           @select="onTagClick"
           @toggle-blacklist="toggleTagBlacklist"
         />

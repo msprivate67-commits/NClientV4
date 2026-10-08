@@ -1,4 +1,4 @@
-//! NClientT - cross-platform nhentai API v2 desktop client.
+//! NClientV4 - cross-platform nhentai API v2 desktop client.
 //!
 //! Module layout:
 //! - [`config`]    : persistent user settings (mirror, UA, auth, paths, ...)
@@ -107,6 +107,10 @@ pub fn run() {
             settings_get,
             settings_set,
             translation_stream_request,
+            translation_cache_get,
+            translation_cache_set,
+            translation_cache_clear,
+            translation_cache_count,
             settings_get_paths,
             settings_pick_directory,
             settings_list_download_candidates,

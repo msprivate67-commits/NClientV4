@@ -12,7 +12,7 @@ use tauri::Manager;
 use tauri_winrt_notification::{Duration, IconCrop, NotificationUpdateResult, Progress, Toast};
 
 #[cfg(windows)]
-const DOWNLOAD_TAG: &str = "nclientt-download-progress";
+const DOWNLOAD_TAG: &str = "nclientv4-download-progress";
 
 #[cfg(windows)]
 static USES_POWERSHELL_FALLBACK: std::sync::atomic::AtomicBool =
@@ -33,14 +33,14 @@ fn notification_icon(app: &AppHandle) -> std::path::PathBuf {
 #[cfg(windows)]
 fn toast(app: &AppHandle, app_id: &str, heading: &str, progress: &Progress) -> Toast {
     let mut toast = Toast::new(app_id)
-        .title("NClientT")
+        .title("NClientV4")
         .text1(heading)
         .progress(progress)
         .duration(Duration::Long)
         .sound(None);
     let icon = notification_icon(app);
     if icon.exists() {
-        toast = toast.icon(&icon, IconCrop::Square, "NClientT");
+        toast = toast.icon(&icon, IconCrop::Square, "NClientV4");
     }
     toast
 }

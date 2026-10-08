@@ -4,7 +4,7 @@ chcp 65001 >nul
 cd /d "%~dp0"
 
 echo ============================================
-echo   NClientT - Signed Android APK Build
+echo   NClientV4 - Signed Android APK Build
 echo ============================================
 echo.
 
@@ -81,7 +81,7 @@ if "%INSTALL_AFTER_BUILD%"=="1" (
     )
 )
 
-if not defined ANDROID_KEYSTORE_PATH set "ANDROID_KEYSTORE_PATH=%CD%\src-tauri\nclientt.keystore"
+if not defined ANDROID_KEYSTORE_PATH set "ANDROID_KEYSTORE_PATH=%CD%\src-tauri\nclientv4.keystore"
 if not exist "%ANDROID_KEYSTORE_PATH%" (
     echo [ERROR] Signing keystore was not found:
     echo         %ANDROID_KEYSTORE_PATH%
@@ -90,8 +90,8 @@ if not exist "%ANDROID_KEYSTORE_PATH%" (
 
 rem These defaults match the existing project keystore. Override them through
 rem environment variables when using a different signing certificate.
-if not defined ANDROID_KEYSTORE_PASSWORD set "ANDROID_KEYSTORE_PASSWORD=nclientt"
-if not defined ANDROID_KEY_ALIAS set "ANDROID_KEY_ALIAS=nclientt"
+if not defined ANDROID_KEYSTORE_PASSWORD set "ANDROID_KEYSTORE_PASSWORD=nclientv4"
+if not defined ANDROID_KEY_ALIAS set "ANDROID_KEY_ALIAS=nclientv4"
 if not defined ANDROID_KEY_PASSWORD set "ANDROID_KEY_PASSWORD=%ANDROID_KEYSTORE_PASSWORD%"
 set "ANDROID_BUILD_TARGET=%BUILD_TARGET%"
 set "ANDROID_REQUIRE_SIGNING=1"
@@ -104,7 +104,7 @@ if not defined APP_VERSION (
 
 echo Target:    %BUILD_TARGET%
 echo Keystore:  %ANDROID_KEYSTORE_PATH%
-echo Output:    artifacts\NClientT-%APP_VERSION%-android-%ARTIFACT_ABI%.apk
+echo Output:    artifacts\NClientV4-%APP_VERSION%-android-%ARTIFACT_ABI%.apk
 echo.
 
 node scripts\build-android-legacy.mjs
@@ -114,7 +114,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-set "SIGNED_APK=%CD%\artifacts\NClientT-%APP_VERSION%-android-%ARTIFACT_ABI%.apk"
+set "SIGNED_APK=%CD%\artifacts\NClientV4-%APP_VERSION%-android-%ARTIFACT_ABI%.apk"
 if not exist "%SIGNED_APK%" (
     echo.
     echo [ERROR] A signed APK was not produced. Check the Android SDK signing tools.
@@ -129,7 +129,7 @@ if "%INSTALL_AFTER_BUILD%"=="1" (
         echo [ERROR] APK installation failed.
         exit /b 1
     )
-    "%ANDROID_SDK_ROOT%\platform-tools\adb.exe" shell pm path com.nclientt.app
+    "%ANDROID_SDK_ROOT%\platform-tools\adb.exe" shell pm path com.nclientv4.app
     if errorlevel 1 (
         echo [ERROR] The installed application package could not be verified.
         exit /b 1

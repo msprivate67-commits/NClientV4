@@ -12,7 +12,7 @@ use tauri_plugin_opener::OpenerExt;
 use crate::api::ApiClient;
 use crate::cloudflare;
 use crate::config::{AuthCredentials, Settings};
-use crate::db::{DownloadRow, FavoriteRow, ReadProgressRow};
+use crate::db::{DownloadRow, FavoriteRow, ReadProgressRow, TranslationCacheRow};
 use crate::downloader::{DownloadRequest, DownloadStatus, COMPLETED_MARKER};
 use crate::error::{AppError, AppResult};
 use crate::http::HttpClient;
@@ -96,6 +96,47 @@ pub async fn translation_stream_request(
     Ok(())
 }
 
+// ===========================================================================
+// AI translation cache
+// ===========================================================================
+
+/// One gallery's stored AI translations (title / tags / comments), keyed by
+/// gallery ID. The frontend checks this before spending an AI request.
+#[tauri::command]
+pub fn translation_cache_get(
+    state: State<'_, AppState>,
+    gallery_id: i64,
+) -> AppResult<Option<TranslationCacheRow>> {
+    state.db.translation_cache_get(gallery_id)
+}
+
+/// Store (or refresh) one gallery's translations and enforce the configured
+/// per-gallery cap (`tl_cache_limit`, trimmed newest-first).
+#[tauri::command]
+pub fn translation_cache_set(
+    state: State<'_, AppState>,
+    mut entry: TranslationCacheRow,
+) -> AppResult<TranslationCacheRow> {
+    entry.updated_at = Utc::now().to_rfc3339();
+    let limit = settings(&state).tl_cache_limit;
+    state.db.translation_cache_upsert(&entry, limit)?;
+    Ok(entry)
+}
+
+/// Drop every cached translation. Returns the number of removed galleries.
+#[tauri::command]
+pub fn translation_cache_clear(state: State<'_, AppState>) -> AppResult<u32> {
+    let removed = state.db.translation_cache_clear()?;
+    Ok(removed as u32)
+}
+
+/// Number of galleries currently held in the translation cache.
+#[tauri::command]
+pub fn translation_cache_count(state: State<'_, AppState>) -> AppResult<u32> {
+    let count = state.db.translation_cache_count()?;
+    Ok(count.max(0) as u32)
+}
+
 #[tauri::command]
 pub fn settings_get_paths(app: AppHandle) -> AppResult<serde_json::Value> {
     let data = app.path().app_data_dir()?;
@@ -125,7 +166,7 @@ pub async fn settings_pick_directory(state: State<'_, AppState>) -> AppResult<Op
                 state
                     .config
                     .app_data
-                    .join("NClientT")
+                    .join("NClientV4")
                     .join("Download")
                     .to_string_lossy()
                     .to_string()
@@ -541,7 +582,7 @@ pub async fn local_scan(state: State<'_, AppState>) -> AppResult<Vec<LocalGaller
     // On Android also scan the internal fallback if different.
     #[cfg(target_os = "android")]
     {
-        let internal = &state.config.app_data.join("NClientT").join("Download");
+        let internal = &state.config.app_data.join("NClientV4").join("Download");
         if *internal != *dirs[0] && internal.exists() {
             dirs.push(internal.clone());
         }
@@ -971,7 +1012,7 @@ pub fn get_app_version() -> String {
 
 /// Repo whose releases we check. Hardcoded — it is also the target of the
 /// sidebar's "Get Latest Version" link, so they must stay in sync.
-const RELEASE_REPO: &str = "msprivate67-commits/NClientT";
+const RELEASE_REPO: &str = "msprivate67-commits/NClientV4";
 
 /// Latest release info surfaced to the frontend.
 #[derive(Debug, Clone, serde::Serialize)]
@@ -1028,7 +1069,7 @@ pub async fn get_latest_release() -> AppResult<Option<LatestRelease>> {
     // HttpClient, which carries a nhentai referer / cookies / proxy tuned for
     // the mirror. GitHub requires a User-Agent header or it answers 403.
     let client = reqwest::Client::builder()
-        .user_agent(concat!("NClientT/", env!("CARGO_PKG_VERSION")))
+        .user_agent(concat!("NClientV4/", env!("CARGO_PKG_VERSION")))
         .timeout(std::time::Duration::from_secs(12))
         .build()?;
 
@@ -1234,7 +1275,7 @@ mod tests {
 
     fn test_folder(name: &str) -> PathBuf {
         let folder = std::env::temp_dir().join(format!(
-            "nclientt-{name}-{}-{}",
+            "nclientv4-{name}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

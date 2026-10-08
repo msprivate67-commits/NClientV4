@@ -140,8 +140,8 @@ pub fn open_challenge(
 fn probe_script() -> String {
     r#"
     (function () {
-      if (window.__nclienttCfProbe) return;
-      window.__nclienttCfProbe = true;
+      if (window.__nclientv4CfProbe) return;
+      window.__nclientv4CfProbe = true;
       var seen = {};
       function emitCookies() {
         try {
