@@ -232,7 +232,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Build portable executable and MSI
+      - name: Build Windows standalone application and MSI
         run: npx tauri build --bundles msi
 
       - name: Upload Windows artifacts
@@ -279,7 +279,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Build portable Linux executable and DEB package
+      - name: Build standalone Linux application and DEB package
         run: npx tauri build --bundles deb
 
       - name: Upload Linux artifact
@@ -362,8 +362,8 @@ jobs:
 
           ## Downloads
           - Android: arm64-v8a APK
-          - Windows: portable executable and MSI installer
-          - Linux: portable x86_64 executable and amd64 DEB package
+          - Windows: standalone application (no installation required) and MSI installer
+          - Linux: standalone x86_64 application (no installation required) and amd64 DEB package
           EOF
           gh release create "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
