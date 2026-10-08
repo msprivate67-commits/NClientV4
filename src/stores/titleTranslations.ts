@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 
 import {
+  cachedTitleFor,
   cacheTitleTranslation,
   matchingCacheEntry,
   titleCacheConfigKey,
@@ -142,10 +143,7 @@ export const useTitleTranslationsStore = defineStore("titleTranslations", () => 
     // config for the same source title skips the AI request entirely.
     const cacheKey = titleCacheConfigKey(job.config);
     const cachedEntry = await matchingCacheEntry(job.galleryId, cacheKey);
-    const cachedTitle =
-      cachedEntry && cachedEntry.title_source === job.sourceTitle
-        ? cachedEntry.title_translated
-        : "";
+    const cachedTitle = cachedTitleFor(cachedEntry, job.sourceTitle);
     if (cachedTitle.trim()) {
       if (!isCurrent(job, controller)) return;
       update(job.galleryId, { translated: cachedTitle, translating: false });

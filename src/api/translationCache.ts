@@ -13,6 +13,8 @@ export interface TranslationCacheEntry {
   config_key: string;
   title_source: string;
   title_translated: string;
+  /** Source title variant -> translated (cards and detail pages differ). */
+  titles: Record<string, string>;
   /** tag ID -> { name, translated } */
   tags: Record<string, { name: string; translated: string }>;
   /** comment ID -> { body, translated } */
@@ -26,6 +28,21 @@ export const translationCacheGet = (galleryId: number): Promise<TranslationCache
 export const translationCacheClear = (): Promise<number> => invoke("translation_cache_clear");
 
 export const translationCacheCount = (): Promise<number> => invoke("translation_cache_count");
+
+/**
+ * Last error thrown by a cache read or write. Cache failures never break
+ * translations, but they are recorded here so the Settings page can surface
+ * why the cache appears empty.
+ */
+let lastCacheError = "";
+export function translationCacheLastError(): string {
+  return lastCacheError;
+}
+
+function recordCacheError(context: string, error: unknown): void {
+  lastCacheError = `${context}: ${error instanceof Error ? error.message : String(error)}`;
+  console.error("[translation-cache]", lastCacheError);
+}
 
 /** Config fields that invalidate cached title / tag translations. */
 export function titleCacheConfigKey(config: {
@@ -67,6 +84,7 @@ function emptyEntry(galleryId: number, configKey: string): TranslationCacheEntry
     config_key: configKey,
     title_source: "",
     title_translated: "",
+    titles: {},
     tags: {},
     comments: {},
     updated_at: "",
@@ -85,8 +103,8 @@ export async function matchingCacheEntry(
   try {
     const entry = await translationCacheGet(galleryId);
     return entry && entry.config_key === configKey ? entry : null;
-  } catch {
-    // Cache failures must never block an actual translation.
+  } catch (error: unknown) {
+    recordCacheError(`读取缓存失败 (gallery ${galleryId})`, error);
     return null;
   }
 }
@@ -94,9 +112,18 @@ export async function matchingCacheEntry(
 async function writeEntry(entry: TranslationCacheEntry): Promise<void> {
   try {
     await invoke("translation_cache_set", { entry });
-  } catch {
-    // A failed cache write only costs a future AI request, never correctness.
+  } catch (error: unknown) {
+    recordCacheError(`写入缓存失败 (gallery ${entry.gallery_id})`, error);
   }
+}
+
+/** Look up the cached translation for one exact source title variant. */
+export function cachedTitleFor(entry: TranslationCacheEntry | null, sourceTitle: string): string {
+  const byVariant = entry?.titles?.[sourceTitle];
+  if (byVariant?.trim()) return byVariant;
+  // Entries written before the multi-variant map only kept one pair.
+  if (entry && entry.title_source === sourceTitle) return entry.title_translated;
+  return "";
 }
 
 /** Merge a translated title into the gallery's cache entry. */
@@ -109,8 +136,11 @@ export async function cacheTitleTranslation(
   if (!Number.isInteger(galleryId) || galleryId <= 0 || !translated.trim()) return;
   const entry = await matchingCacheEntry(galleryId, configKey);
   const base = entry ?? emptyEntry(galleryId, configKey);
-  base.title_source = sourceTitle;
-  base.title_translated = translated;
+  base.titles[sourceTitle] = translated;
+  if (!base.title_source) {
+    base.title_source = sourceTitle;
+    base.title_translated = translated;
+  }
   await writeEntry(base);
 }
 

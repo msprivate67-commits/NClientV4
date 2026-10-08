@@ -1,6 +1,6 @@
 {
   "name": "nclientv4",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "Unofficial cross-platform nhentai desktop client with optional online favorite sync",
   "license": "Apache-2.0",
   "type": "module",

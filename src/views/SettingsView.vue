@@ -21,6 +21,7 @@ import {
   testTranslationConnection,
   translationCacheClear,
   translationCacheCount,
+  translationCacheLastError,
 } from "@/api";
 import {
   defaultCommentTranslationTarget,
@@ -68,13 +69,18 @@ const tlResult = ref<{ ok: boolean; message: string } | null>(null);
 // action. The per-gallery cap itself is part of the draft settings above.
 const cacheCount = ref(0);
 const cacheClearing = ref(false);
+const cacheLastError = ref("");
 
 async function refreshCacheCount() {
   try {
     cacheCount.value = await translationCacheCount();
   } catch (e) {
     console.warn(e);
+    cacheLastError.value = e instanceof Error ? e.message : String(e);
   }
+  // Surface read/write failures recorded while translating (they are
+  // deliberately invisible in the gallery views).
+  cacheLastError.value = translationCacheLastError();
 }
 
 async function clearTranslationCache() {
@@ -85,6 +91,9 @@ async function clearTranslationCache() {
   try {
     await translationCacheClear();
     cacheCount.value = 0;
+    cacheLastError.value = "";
+  } catch (e) {
+    cacheLastError.value = e instanceof Error ? e.message : String(e);
   } finally {
     cacheClearing.value = false;
   }
@@ -512,6 +521,9 @@ onMounted(async () => {
         </button>
       </div>
       <p class="hint">{{ $t('settings.ai_cache_hint') }}</p>
+      <div v-if="cacheLastError" class="tl-error" style="margin-top: 8px;">
+        {{ cacheLastError }}
+      </div>
       <div class="row" style="margin-top: 10px;">
         <button class="btn" :disabled="tlTesting" @click="testAiConnection">
           {{ tlTesting ? $t('settings.ai_testing') : $t('settings.ai_test_connection') }}

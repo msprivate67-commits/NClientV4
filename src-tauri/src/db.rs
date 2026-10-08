@@ -254,6 +254,8 @@ pub struct FavoriteRow {
 
 /// One gallery's cached AI translations, keyed by the gallery ID.
 ///
+/// `titles` maps every source-title variant to its translation (list cards
+/// and detail pages derive different title text from the same gallery).
 /// `tags` maps a tag ID to `{ name, translated }` and `comments` maps a
 /// comment ID to `{ body, translated }`. The source text is stored alongside
 /// every translation so the frontend can detect a stale entry (renamed tag or
@@ -267,6 +269,7 @@ pub struct TranslationCacheRow {
     pub config_key: String,
     pub title_source: String,
     pub title_translated: String,
+    pub titles: serde_json::Value,
     pub tags: serde_json::Value,
     pub comments: serde_json::Value,
     pub updated_at: String,
@@ -335,6 +338,12 @@ fn migrate(conn: &Connection) -> AppResult<()> {
     // Non-fatal: add column for DBs from older versions.
     conn.execute_batch(
         "ALTER TABLE local_meta ADD COLUMN translated_title TEXT NOT NULL DEFAULT '';",
+    )
+    .ok();
+    // v4.0.1 translation-cache tables predate the multi-variant `titles`
+    // column. Non-fatal: fresh databases already have it via CREATE above.
+    conn.execute_batch(
+        "ALTER TABLE translation_cache ADD COLUMN titles TEXT NOT NULL DEFAULT '{}';",
     )
     .ok();
     Ok(())
@@ -413,12 +422,15 @@ const MIGRATIONS: &[&str] = &[
     // Holds the translated title plus per-tag / per-comment translations so a
     // repeat visit never spends another AI request on the same gallery. The
     // row count is trimmed to the user-configured limit (`tl_cache_limit`)
-    // after every write.
+    // after every write. `titles` maps every source-title variant to its
+    // translation: list cards and detail pages derive different title text
+    // from the same gallery, so variants coexist in one record.
     "CREATE TABLE IF NOT EXISTS translation_cache (
         gallery_id       INTEGER PRIMARY KEY,
         config_key       TEXT NOT NULL DEFAULT '',
         title_source     TEXT NOT NULL DEFAULT '',
         title_translated TEXT NOT NULL DEFAULT '',
+        titles           TEXT NOT NULL DEFAULT '{}',
         tags             TEXT NOT NULL DEFAULT '{}',
         comments         TEXT NOT NULL DEFAULT '{}',
         updated_at       TEXT NOT NULL
@@ -833,7 +845,7 @@ impl Database {
         self.with_conn(|c| {
             let mut stmt = c.prepare(
                 "SELECT gallery_id, config_key, title_source, title_translated,
-                        tags, comments, updated_at
+                        titles, tags, comments, updated_at
                  FROM translation_cache WHERE gallery_id = ?1",
             )?;
             let mut rows = stmt.query_map(params![gallery_id], |r| row_to_translation_cache(r))?;
@@ -849,16 +861,19 @@ impl Database {
         limit: u32,
     ) -> AppResult<()> {
         self.with_conn(|c| {
+            let titles = serde_json::to_string(&entry.titles).unwrap_or_else(|_| "{}".into());
             let tags = serde_json::to_string(&entry.tags).unwrap_or_else(|_| "{}".into());
             let comments = serde_json::to_string(&entry.comments).unwrap_or_else(|_| "{}".into());
             c.execute(
                 "INSERT INTO translation_cache (gallery_id, config_key, title_source,
-                                                title_translated, tags, comments, updated_at)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+                                                title_translated, titles, tags, comments,
+                                                updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
                  ON CONFLICT(gallery_id) DO UPDATE SET
                     config_key       = excluded.config_key,
                     title_source     = excluded.title_source,
                     title_translated = excluded.title_translated,
+                    titles           = excluded.titles,
                     tags             = excluded.tags,
                     comments         = excluded.comments,
                     updated_at       = excluded.updated_at",
@@ -867,6 +882,7 @@ impl Database {
                     entry.config_key,
                     entry.title_source,
                     entry.title_translated,
+                    titles,
                     tags,
                     comments,
                     Utc::now().to_rfc3339()
@@ -909,16 +925,18 @@ impl Database {
 }
 
 fn row_to_translation_cache(r: &rusqlite::Row<'_>) -> rusqlite::Result<TranslationCacheRow> {
-    let tags_json: String = r.get(4)?;
-    let comments_json: String = r.get(5)?;
+    let titles_json: String = r.get(4)?;
+    let tags_json: String = r.get(5)?;
+    let comments_json: String = r.get(6)?;
     Ok(TranslationCacheRow {
         gallery_id: r.get(0)?,
         config_key: r.get(1)?,
         title_source: r.get(2)?,
         title_translated: r.get(3)?,
+        titles: serde_json::from_str(&titles_json).unwrap_or_else(|_| serde_json::json!({})),
         tags: serde_json::from_str(&tags_json).unwrap_or_else(|_| serde_json::json!({})),
         comments: serde_json::from_str(&comments_json).unwrap_or_else(|_| serde_json::json!({})),
-        updated_at: r.get(6)?,
+        updated_at: r.get(7)?,
     })
 }
 
@@ -991,6 +1009,7 @@ mod tests {
             config_key: "cfg".into(),
             title_source: "source".into(),
             title_translated: title.into(),
+            titles: json!({ "source": title, "variant": format!("{title}-v2") }),
             tags: json!({ "1": { "name": "tag", "translated": "标签" } }),
             comments: json!({}),
             updated_at: String::new(),
@@ -1009,6 +1028,8 @@ mod tests {
         assert_eq!(stored.gallery_id, 123);
         assert_eq!(stored.title_source, "source");
         assert_eq!(stored.title_translated, "译名");
+        assert_eq!(stored.titles.get("source").unwrap(), "译名");
+        assert_eq!(stored.titles.get("variant").unwrap(), "译名-v2");
         assert_eq!(stored.config_key, "cfg");
         assert_eq!(
             stored.tags.get("1").unwrap().get("translated").unwrap(),

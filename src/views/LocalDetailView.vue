@@ -7,6 +7,7 @@ import {
   cacheCommentTranslations,
   cacheTitleTranslation,
   cachedCommentTranslation,
+  cachedTitleFor,
   commentCacheConfigKey,
   imageProxyUrl,
   localGet,
@@ -408,10 +409,7 @@ async function doTranslate() {
     useProxy: s.tl_use_proxy,
   });
   const cachedEntry = await matchingCacheEntry(galleryId, cacheKey);
-  const cachedTitle =
-    cachedEntry && cachedEntry.title_source === title.value
-      ? cachedEntry.title_translated
-      : "";
+  const cachedTitle = cachedTitleFor(cachedEntry, title.value);
   if (cachedTitle.trim()) {
     translated.value = cachedTitle;
     reasoningExpanded.value = false;

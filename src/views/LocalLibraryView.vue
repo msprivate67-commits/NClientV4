@@ -7,6 +7,7 @@ import EmptyState from "@/components/EmptyState.vue";
 import { ArrowUp, ArrowDown, Languages, Loader } from "@lucide/vue";
 import {
   cacheTitleTranslation,
+  cachedTitleFor,
   localScan,
   localList,
   localDelete,
@@ -120,10 +121,7 @@ async function translateAll() {
       // Cache first: a stored translation for this gallery produced by the
       // same config skips the AI request entirely.
       const cachedEntry = await matchingCacheEntry(l.id, cacheKey);
-      const cachedTitle =
-        cachedEntry && cachedEntry.title_source === original
-          ? cachedEntry.title_translated
-          : "";
+      const cachedTitle = cachedTitleFor(cachedEntry, original);
       if (cachedTitle.trim()) {
         try {
           await localSetTranslatedTitle(l.id, cachedTitle);
